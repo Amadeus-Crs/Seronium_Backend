@@ -8,7 +8,7 @@ import (
 	"Seronium/internal/util"
 	"log"
 
-	"github.com/gin-gonic/gin"
+	"github.com/cloudwego/hertz/pkg/app/server"
 	"go.uber.org/zap"
 )
 
@@ -31,22 +31,23 @@ func main() {
 
 	repository.InitMinIO()
 
-	r := gin.Default()
+	h := server.Default(server.WithHostPorts(":8080"))
+	middleware.InitJWTMiddleware()
 
-	authGroup := r.Group("/api/auth")
+	authGroup := h.Group("/api/auth")
 	{
 		authGroup.POST("/register", handler.Register)
 		authGroup.POST("/login", handler.Login)
 	}
 
-	apiGroup := r.Group("/api")
-	apiGroup.Use(middleware.JWTAuth())
+	apiGroup := h.Group("/api")
+	apiGroup.Use(middleware.JWTMiddleware.MiddlewareFunc())
 	{
 		apiGroup.GET("/user/profile", handler.GetProfile)
 		apiGroup.PUT("/user/profile", handler.UpdateProfile)
 
-		apiGroup.POST("/post", handler.CreatePost)
-		apiGroup.GET("/post/:id", handler.GetPost)
+		apiGroup.POST("/posts", handler.CreatePost)
+		apiGroup.GET("/posts/:id", handler.GetPost)
 		apiGroup.PUT("/posts/:id", handler.UpdatePost)
 		apiGroup.DELETE("/posts/:id", handler.DeletePost)
 		apiGroup.GET("/posts", handler.ListPosts)
@@ -54,9 +55,8 @@ func main() {
 		apiGroup.POST("/comments", handler.CreateComment)
 		apiGroup.POST("/likes", handler.Like)
 		apiGroup.POST("/collections", handler.Collect)
+		apiGroup.POST("/upload", handler.Image)
 	}
 
-	if err := r.Run(":8080"); err != nil {
-		zap.L().Fatal("failed to run server", zap.Error(err))
-	}
+	h.Spin()
 }

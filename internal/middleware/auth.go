@@ -2,35 +2,47 @@ package middleware
 
 import (
 	"Seronium/internal/config"
-	"net/http"
-	"strings"
+	"context"
+	"time"
 
-	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt"
+	"github.com/cloudwego/hertz/pkg/app"
+	"github.com/hertz-contrib/jwt"
 )
 
-func JWTAuth() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		auth := c.GetHeader("Authorization")
-		if auth == "" || !strings.HasPrefix(auth, "Bearer ") {
-			c.JSON(http.StatusUnauthorized, gin.H{"code": 2, "msg": "请登录"})
-			c.Abort()
-			return
-		}
+var JWTMiddleware *jwt.HertzJWTMiddleware
 
-		tokenStr := strings.TrimPrefix(auth, "Bearer ")
-		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-			return []byte(config.JWTSecret), nil
-		})
-		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"code": 2, "msg": "Token 无效"})
-			c.Abort()
-			return
-		}
-
-		claims, _ := token.Claims.(jwt.MapClaims)
-		userID := uint64(claims["user_id"].(float64))
-		c.Set("user_id", userID)
-		c.Next()
+func InitJWTMiddleware() {
+	var err error
+	JWTMiddleware, err = jwt.New(&jwt.HertzJWTMiddleware{
+		Realm:         "quora",
+		Key:           []byte(config.JWTSecret),
+		Timeout:       time.Hour * 24,
+		MaxRefresh:    time.Hour * 24,
+		IdentityKey:   "user_id",
+		TokenLookup:   "header: Authorization",
+		TokenHeadName: "Bearer",
+		PayloadFunc: func(data interface{}) jwt.MapClaims {
+			if v, ok := data.(map[string]interface{}); ok {
+				return jwt.MapClaims{
+					"user_id": v["user_id"],
+				}
+			}
+			return jwt.MapClaims{}
+		},
+		IdentityHandler: func(ctx context.Context, c *app.RequestContext) interface{} {
+			claims := jwt.ExtractClaims(ctx, c)
+			return claims
+		},
+	})
+	if err != nil {
+		panic(err)
 	}
+}
+
+func GetUserID(ctx context.Context, c *app.RequestContext) uint64 {
+	claims := jwt.ExtractClaims(ctx, c)
+	if userID, ok := claims["user_id"].(float64); ok {
+		return uint64(userID)
+	}
+	return 0
 }

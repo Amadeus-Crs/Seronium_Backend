@@ -19,7 +19,7 @@ type Post struct {
 	UserID    uint64
 	Title     string `gorm:"not null"`
 	Content   string `gorm:"not null"`
-	Type      string `gorm:"not null"` // question/article
+	Type      string `gorm:"type:enum('question','article');not null"` // question/article
 	Status    string `gorm:"default:'published'"`
 	ViewCount uint64 `gorm:"default:0"`
 	CreatedAt time.Time

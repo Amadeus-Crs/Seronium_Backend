@@ -15,7 +15,7 @@ type UserService struct {
 
 func (s *UserService) FindByID(userID uint64) (*model.User, error) {
 	user := &model.User{}
-	err := repository.DB.First(user, userID).Error
+	user, err := s.repo.FindByID(userID)
 	return user, err
 }
 

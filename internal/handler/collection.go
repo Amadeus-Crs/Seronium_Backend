@@ -1,27 +1,29 @@
 package handler
 
 import (
+	"Seronium/internal/middleware"
 	"Seronium/internal/service"
+	"context"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/cloudwego/hertz/pkg/app"
 )
 
 var collectionService = service.NewCollectionService()
 
-func Collect(c *gin.Context) {
-	userID := c.GetUint64("user_id")
+func Collect(ctx context.Context, c *app.RequestContext) {
+	userID := middleware.GetUserID(ctx, c)
 	var req struct {
 		PostID uint64 `json:"post_id" binding:"required"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 2, "msg": err.Error()})
+	if err := c.BindAndValidate(&req); err != nil {
+		c.JSON(http.StatusBadRequest, map[string]interface{}{"code": 2, "msg": err.Error()})
 		return
 	}
 
 	if err := collectionService.Collect(userID, req.PostID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 2, "msg": err.Error()})
+		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": 2, "msg": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 1, "msg": "收藏成功"})
+	c.JSON(http.StatusOK, map[string]interface{}{"code": 1, "msg": "收藏成功"})
 }

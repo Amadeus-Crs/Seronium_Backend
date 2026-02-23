@@ -1,28 +1,30 @@
 package handler
 
 import (
+	"Seronium/internal/middleware"
 	"Seronium/internal/service"
+	"context"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
+	"github.com/cloudwego/hertz/pkg/app"
 )
 
 var likeService = service.NewLikeService()
 
-func Like(c *gin.Context) {
-	userID := c.GetUint64("user_id")
+func Like(ctx context.Context, c *app.RequestContext) {
+	userID := middleware.GetUserID(ctx, c)
 	var req struct {
 		TargetType string `json:"target_type" binding:"required"`
 		TargetID   uint64 `json:"target_id" binding:"required"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"code": 2, "msg": err.Error()})
+	if err := c.BindAndValidate(&req); err != nil {
+		c.JSON(http.StatusBadRequest, map[string]interface{}{"code": 2, "msg": err.Error()})
 		return
 	}
 
 	if err := likeService.Like(userID, req.TargetType, req.TargetID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"code": 2, "msg": err.Error()})
+		c.JSON(http.StatusInternalServerError, map[string]interface{}{"code": 2, "msg": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"code": 1, "msg": "点赞成功"})
+	c.JSON(http.StatusOK, map[string]interface{}{"code": 1, "msg": "点赞成功"})
 }
