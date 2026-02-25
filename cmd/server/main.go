@@ -8,6 +8,7 @@ import (
 	"Seronium/internal/util"
 	"log"
 
+	"github.com/cloudwego/hertz/pkg/app/middlewares/server/recovery"
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"go.uber.org/zap"
 )
@@ -32,6 +33,8 @@ func main() {
 	repository.InitMinIO()
 
 	h := server.Default(server.WithHostPorts(":8080"))
+	h.Use(recovery.Recovery())
+	h.Use(middleware.CORS())
 	middleware.InitJWTMiddleware()
 
 	authGroup := h.Group("/api/auth")

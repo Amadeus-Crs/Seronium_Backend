@@ -1,6 +1,8 @@
 package repository
 
-import "Seronium/internal/model"
+import (
+	"Seronium/internal/model"
+)
 
 type PostRepo struct{}
 

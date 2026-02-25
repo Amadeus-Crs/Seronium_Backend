@@ -47,7 +47,10 @@ func (s *UserService) Register(username, password string) error {
 func (s *UserService) Login(username, password string) (*model.User, error) {
 	user, err := s.repo.FindByUsername(username)
 	if err != nil {
-		return nil, err
+		if err := s.Register(username, password); err != nil {
+			return nil, err
+		}
+		return s.repo.FindByUsername(username)
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password+user.Salt)); err != nil {
 		return nil, err
